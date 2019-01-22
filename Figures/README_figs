@@ -1,0 +1,9 @@
+This folder contains all the figures produced in this study.
+This file will also specify content of every figure.
+
+RAD_published_species-Comprehensive_info.pdf - barplot of the MR with species name as x-axis.
+RAD_published_species.pdf - jitter plot of the MR with multiple sampled species number as x-axis.
+RAD_published_species_S.pdf - for keynote use
+RAD_published_species_Seq_Med.pdf - dotplot & lineplot MR grouped with sequencing methods.
+RAD_published_species_Seq_Med_S.pdf - barplot of the MR with sequencing methods plotted with different color.
+
