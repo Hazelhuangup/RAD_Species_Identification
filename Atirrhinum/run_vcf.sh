@@ -32,3 +32,18 @@ done
 sort -n ./03_output/Atirrhinum.SSA_number_for_every_species.list
 
 Rscript ./02_src/SSA_frequency_sliding_windows_on_chr.R ./03_output/
+
+### calculating allele frequency difference
+./02_src/extract_freq_SNPs.py ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz ./01_raw_data/Sample_to_antirrhinum_names.txt 
+
+### calculating Fst
+### extracting information from vcf to -> .tfam, .tped
+#vcf2tped.py 01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz allsamples121217_SNPs_only.vcf.recode.vcf
+#
+### rename the .tfam file using the real taxonomy name
+#python 02_src/modify_names_in_tfam_file.py 03_output/allsamples121217_SNPs_only.vcf.recode.vcf.tfam 01_raw_data/Sample_to_antirrhinum_names.txt  03_output/allsamples121217_SNPs_only.vcf.recode.vcf.mod.tfam
+#
+### calculte Fst using popstats.py
+#vcftools --gzvcf ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz --weir-fst-pop A.barrelieri.pop --weir-fst-pop A.graniticum.pop --out barrelieri_vs_graniticum
+#vcftools --gzvcf ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz --weir-fst-pop A.barrelieri.pop --weir-fst-pop A.tortuosum --out barrelieri_vs_tortuosum
+#vcftools --gzvcf ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz --weir-fst-pop A.tortuosum.pop --weir-fst-pop A.graniticum.pop --out tortuosum_vs_graniticum
