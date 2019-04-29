@@ -1,4 +1,6 @@
 #!/usr/local/bin/python
+# 2019.04.10 2019.04.29
+# Wu Huang<whuang@rbge.org.uk>
 
 from __future__ import division
 import sys
@@ -62,16 +64,19 @@ for i in vcf_file:
 			for alt in range(0,len(alleles)):
 				if int(alleles[alt]) > 0:
 					all_alleles[order] = all_alleles[order]+str(alt)
-# for every species, put its individuals into a list, the rest another list, create a list for every other species and put them into a dictionary-{rest_species_allele_dict}
+				else:
+					continue
+# for every species, put its individuals into a list, the rest another list, create a list for each rest species and put them into a dictionary-{rest_species_allele_dict}
 		for A in name_dict:
 			rest_alleles = []
 			species_alleles = []
 			rest_individual_list, rest_species_name, rest_species_allele_dict = name_list[:], copy.deepcopy(name_dict),{}
 			del rest_species_name[A]
-			FREQ_DIFF_out_file = open('./03_output/'+A+'.FREQ_DIFF.list','a')
 			for individuals in name_dict[A]:
 				rest_individual_list.remove(individuals)
 				species_alleles.append(all_alleles[position_in_vcf.index(individuals)])
+#			if len(species_alleles) > 3:
+			FREQ_DIFF_out_file = open('./03_output/'+A+'.FREQ_DIFF.list','a')
 			for rest_individuals in rest_individual_list:
 				rest_alleles.append(all_alleles[position_in_vcf.index(rest_individuals)])
 			freq_A, freq_ALL = allele_freq(species_alleles), allele_freq(rest_alleles)
@@ -80,6 +85,7 @@ for i in vcf_file:
 				B_species_alleles = []
 				for B_individuals in rest_species_name[B]:
 					B_species_alleles.append(all_alleles[position_in_vcf.index(B_individuals)])
+#### modification on 2019.04.29 - only count groups > 3 individuals, thus the frequency threshold to 87.5% (at most 7 alleles amongst 8 alleles.)
 				rest_species_allele_dict[B] = B_species_alleles
 				freq_B = allele_freq(B_species_alleles)
 				if freq_B[0]+freq_B[1] != 0:
@@ -87,6 +93,8 @@ for i in vcf_file:
 					AF_B_1 = freq_B[1]/(freq_B[0]+freq_B[1])
 					rest_group_freq_0_list.append(AF_B_0)
 					rest_group_freq_1_list.append(AF_B_1)
+				else:
+					continue
 # judge if alleles_frequency in species A is significantly different from all the rest species respetively and in all.
 ## retaining loci by thresholds
 			if len(rest_group_freq_0_list) > 5: ## for this locus, alleles in at least 5 other groups are not missing
@@ -95,28 +103,38 @@ for i in vcf_file:
 					AF_A_1 = freq_A[1]/(freq_A[0]+freq_A[1])
 					AF_ALL_0 = freq_ALL[0]/(freq_ALL[0]+freq_ALL[1])
 					AF_ALL_1 = freq_ALL[1]/(freq_ALL[0]+freq_ALL[1])
-# stage 1:  If AF in this group is higher than a specific threshold (say 90%), progresses to stage 2 ->
-					if AF_A_0 > 0.9:
+# stage 1: If AF in this group is higher than a specific threshold (say 87.5%), progresses to stage 2 ->
+					if AF_A_0 > 0.875:
 # stage 2: if AF in all the rest groups(aggregated) is lower than a threshold (10%), progress to stage 3 ->
 						if AF_ALL_0 <= 0.1:
-# stage 3: if AFs in any other groups (separated) are lower than a threshold (10%), take this locus as valid one with allele frequency difference
-							if AF_A_0 == 1 and AF_ALL_0 == 0:
+# stage 3: if AFs in any other groups (separated) are lower than a threshold (12.5%, at most one allele amongst 8 alleles of 4 individuals), take this locus as valid one with allele frequency difference
+							if AF_A_0 == 1 and AF_ALL_0 == 0: # skipping fixed SNPs which are calculated in the SSA script
 								continue
 							else:
-								if max(rest_group_freq_0_list) < 0.1:
+								if max(rest_group_freq_0_list) <= 0.125:
 									FREQ_DIFF_out_file.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n'.format(i[0], i[1], freq_A, round(AF_A_0,2), round(AF_A_1,2), round(AF_ALL_0,2), round(AF_ALL_1,2), round(max(rest_group_freq_0_list),2)))
-					elif AF_A_1 > 0.9:
+						else:
+							continue
+					elif AF_A_1 > 0.875:
 # stage 2: if AF in all the rest groups(aggregated) is lower than a threshold (10%), progress to stage 3 ->
 						if AF_ALL_1 <= 0.1:
 							if AF_A_1 == 1 and AF_ALL_1 == 0:
 								continue
 							else:
-								if max(rest_group_freq_0_list) < 0.1:
-									FREQ_DIFF_out_file.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n'.format(i[0], i[1], freq_A, round(AF_A_0,2), round(AF_A_1,2), round(AF_ALL_0,2), round(AF_ALL_1,2), round(max(rest_group_freq_0_list),2)))
-#								print '03',AF_A_0, AF_A_1, A,freq_A, freq_ALL, max(rest_group_freq_0_list), rest_group_freq_0_list
+								if max(rest_group_freq_1_list) <= 0.125:
+									FREQ_DIFF_out_file.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n'.format(i[0], i[1], freq_A, round(AF_A_0,2), round(AF_A_1,2), round(AF_ALL_0,2), round(AF_ALL_1,2), round(max(rest_group_freq_1_list),2)))
+						else:
+							continue
+#							print '03',AF_A_0, AF_A_1, A,freq_A, freq_ALL, max(rest_group_freq_0_list), rest_group_freq_0_list
 					else:
 						continue
-#					out_file_Pairwise_Allele_Freq.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(A,freq_A, B, freq_B, freq_ALL))
-
+#						out_file_Pairwise_Allele_Freq.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(A,freq_A, B, freq_B, freq_ALL))
+				else:
+					continue
+			else:
+				continue
+	else:
+		continue
+		
 vcf_file.close()
 name_file.close()
