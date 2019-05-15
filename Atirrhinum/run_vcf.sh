@@ -9,6 +9,8 @@ vcftools --gzvcf ./01_raw_data/allsamples121217_raw_m.vcf.gz --SNPdensity 10000 
 zcat ./01_raw_data/allsamples121217_raw_m.vcf.gz |awk '{if(/^##/) print $0;else{if($5!=".") print $0}}' |gzip -c > ./01_raw_data/allsamples121217_var.vcf.gz
 ## Only keep SNP loci
 vcftools --gzvcf ./01_raw_data/allsamples121217_var.vcf.gz --remove-indels --recode --recode-INFO-all --stout|gzip -c > ./01_raw_data/allsamples121217_SNPs_only.vcf.gz ## 37min
+## Only keep Bi-allelic SNP loci
+zcat ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz |awk '{if(/^##/) print $0;else{if(length($5)==1) print $0}}' |gzip -c > ./01_raw_data/allsamples121217_Bi-allelic_SNP_only.vcf.gz
 
 ## extract hetero-loci in sample 1
 zcat ./01_raw_data/allsamples121217_var.SNPs_only.vcf.gz|awk '{split($10,a,":");split(a[7],b,",");if(b[1]!=0 && b[2]!=0) print $1"\t"$2"\t"$4"\t"$5"\t"$10}' > sample_100.hetero_loci
@@ -35,6 +37,23 @@ Rscript ./02_src/SSA_frequency_sliding_windows_on_chr.R ./03_output/
 
 ### calculating allele frequency difference
 ./02_src/extract_freq_SNPs.py ./01_raw_data/allsamples121217_SNPs_only.vcf.recode.vcf.gz ./01_raw_data/Sample_to_antirrhinum_names.txt 
+
+for i in `ls 03_output/*FREQ_DIFF.list`;do
+	wc -l $i;
+	for z in {1..8};do
+		grep 'Chr'$z $i|wc -l 
+		done
+	done > 03_output/All.FREQ_DIFF.No.txt
+
+for i in {10..110};do
+	zcat ./01_raw_data/allsamples121217_Bi-allelic_SNP_only.vcf.gz | awk '{if(!/^##/) split($'$i',a,":"); print a[3]}' |sort -n |uniq -c  > 03_output/read_depth_for_ind_freq/$i.freq
+	done
+
+Rscript ./02_src/draw_ind_depth_frequency.R /localdisk/home/s1847348/02_project/01_nuclear_for_barcoding
+
+./02_src/count_missing_individuals_loci.py ./01_raw_data/allsamples121217_Bi-allelic_SNP_only.vcf.gz ./01_raw_data/allsamples121217_Bi-allelic_SNP_only.count_missing_ind.list
+awk '{print $3}' ./01_raw_data/allsamples121217_Bi-allelic_SNP_only.count_missing_ind.list|sort -n |uniq -c |awk '{print $1"\t"$2}' > draw_frequency_no_ind_at_a_locus.freq
+Rscript ./02_src/draw_frequency_basic.R numbers_of_ind_not_missing_at_this_locus.pdf draw_frequency_no_ind_at_a_locus.freq
 
 ### calculating Fst
 ### extracting information from vcf to -> .tfam, .tped
